@@ -1,24 +1,34 @@
-
 import os
 import sys
 import json
 import pickle
 import logging
-import pandas as pd
 
+import mlflow
+import mlflow.sklearn
+import pandas as pd
+import dagshub
 from sklearn.metrics import (
     accuracy_score,
     precision_score,
     recall_score,
-    roc_auc_score
+    roc_auc_score,
 )
+
+# ---------------- DagsHub / MLflow setup ----------------
+# dagshub.init(mlflow=True) khud MLflow tracking URI set kar deta hai.
+# (Purani line `dagshub.set_tracking_uri = "..."` hata di, wo kuch nahi karti thi.)
+dagshub.init(repo_owner="prasadshinde-2005", repo_name="Mini-project", mlflow=True)
+
+# Purane runs usi experiment mein rakhne hain to naam "dvc-pipline" kar do.
+EXPERIMENT_NAME = "dvc-pipeline"
 
 
 # ---------------- Logging Configuration ----------------
 
 logging.basicConfig(
     level=logging.DEBUG,
-    format="%(asctime)s - %(levelname)s - %(name)s - %(message)s"
+    format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
 )
 
 logger = logging.getLogger(__name__)
@@ -89,12 +99,12 @@ def load_model(model_path):
 
         # Only load pickle files from trusted sources.
         with open(model_path, "rb") as file:
-            LR = pickle.load(file)
+            model = pickle.load(file)
 
         logger.info("Model loaded successfully.")
-        logger.debug("Model classes: %s", LR.classes_)
+        logger.debug("Model classes: %s", model.classes_)
 
-        return LR
+        return model
 
     except Exception:
         logger.exception("Failed to load model.")
@@ -103,29 +113,27 @@ def load_model(model_path):
 
 # ---------------- Make Predictions ----------------
 
-def predict(LR, x_test):
+def predict(model, x_test):
     try:
         logger.info("Making predictions.")
 
-        y_pred = LR.predict(x_test)
-
-        logger.debug("Model classes: %s", LR.classes_)
+        y_pred = model.predict(x_test)
 
         # In data_ingestion.py:
         # happiness = 1
         # sadness = 0
         positive_class = 1
 
-        if positive_class not in LR.classes_:
+        if positive_class not in model.classes_:
             raise ValueError(
                 "Positive class 1 (happiness) is missing from the trained model."
             )
 
-        y_pred_proba_all = LR.predict_proba(x_test)
+        y_pred_proba_all = model.predict_proba(x_test)
 
-        # Get probability column corresponding to class 1
-        happiness_index = list(LR.classes_).index(positive_class)
-        y_pred_proba = y_pred_proba_all[:, happiness_index]
+        # Probability column corresponding to class 1
+        positive_index = list(model.classes_).index(positive_class)
+        y_pred_proba = y_pred_proba_all[:, positive_index]
 
         logger.info("Predictions completed successfully.")
         logger.debug("Prediction count: %d", len(y_pred))
@@ -144,20 +152,8 @@ def calculate_metrics(y_test, y_pred, y_pred_proba):
         logger.info("Calculating evaluation metrics.")
 
         accuracy = accuracy_score(y_test, y_pred)
-
-        precision = precision_score(
-            y_test,
-            y_pred,
-            pos_label=1,
-            zero_division=0
-        )
-
-        recall = recall_score(
-            y_test,
-            y_pred,
-            pos_label=1,
-            zero_division=0
-        )
+        precision = precision_score(y_test, y_pred, pos_label=1, zero_division=0)
+        recall = recall_score(y_test, y_pred, pos_label=1, zero_division=0)
 
         # AUC requires both classes to be present in y_test.
         if len(set(y_test)) < 2:
@@ -172,7 +168,7 @@ def calculate_metrics(y_test, y_pred, y_pred_proba):
             "accuracy": float(accuracy),
             "precision": float(precision),
             "recall": float(recall),
-            "auc": float(auc)
+            "auc": float(auc),
         }
 
         logger.info("Metrics calculated successfully.")
@@ -206,36 +202,63 @@ def save_metrics(metrics, output_path):
         raise
 
 
+# ---------------- Log everything to MLflow ----------------
+
+def log_to_mlflow(model, metrics, metrics_path, model_path):
+    # metrics aur params
+    mlflow.log_metrics(metrics)
+    mlflow.log_params(model.get_params())
+
+    # Artifacts: ye Artifacts tab mein dikhenge
+    mlflow.log_artifact(metrics_path)   # metrics.json
+    mlflow.log_artifact(model_path)     # model.pkl (raw file)
+
+    # MLflow model format. MLflow 3 mein ye Artifacts tab mein nahi,
+    # "Models / Logged models" tab mein dikhta hai.
+    # Agar DagsHub ka server ise support na kare to run fail na ho,
+    # isliye try/except mein rakha hai.
+    try:
+        mlflow.sklearn.log_model(model, name="model")
+        logger.info("Model logged to MLflow in MLflow-model format.")
+    except Exception:
+        logger.warning(
+            "mlflow.sklearn.log_model failed; raw model.pkl is still "
+            "available as a run artifact.",
+            exc_info=True,
+        )
+
+
 # ---------------- Main Function ----------------
 
 def main():
+    # Paths relative to the project root (script project root se chalao)
+    test_data_path = "data/feature/test_bow.csv"
+    model_path = "model.pkl"
+    metrics_path = "metrics.json"
+
+    mlflow.set_experiment(EXPERIMENT_NAME)
+
     try:
-        logger.info("Starting model evaluation.")
+        # `with` use kiya taaki error aane par bhi run sahi se band ho
+        with mlflow.start_run():
+            logger.info("Starting model evaluation.")
 
-        # Paths relative to the project root
-        test_data_path = "data/feature/test_tfidf.csv"
-        model_path = "model.pkl"
-        metrics_path = "metrics.json"
+            # Load data and trained model
+            test_data = read_data(test_data_path)
+            x_test, y_test = separate_data(test_data)
+            model = load_model(model_path)
 
-        # Load data and trained model
-        test_data = read_data(test_data_path)
-        x_test, y_test = separate_data(test_data)
-        clf = load_model(model_path)
+            # Predict and evaluate
+            y_pred, y_pred_proba = predict(model, x_test)
+            metrics = calculate_metrics(y_test, y_pred, y_pred_proba)
 
-        # Make predictions
-        y_pred, y_pred_proba = predict(clf, x_test)
+            # Save metrics locally (DVC isi file ko track karta hai)
+            save_metrics(metrics, metrics_path)
 
-        # Calculate metrics
-        metrics = calculate_metrics(
-            y_test,
-            y_pred,
-            y_pred_proba
-        )
+            # Log everything to MLflow / DagsHub
+            log_to_mlflow(model, metrics, metrics_path, model_path)
 
-        # Save metrics
-        save_metrics(metrics, metrics_path)
-
-        logger.info("Model evaluation completed successfully.")
+            logger.info("Model evaluation completed successfully.")
 
     except Exception:
         logger.exception("Model evaluation failed.")

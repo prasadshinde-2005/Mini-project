@@ -164,7 +164,7 @@ def main():
 
         C , penalty ,solver = parameter("params.yaml")
 
-        train_data = read_data("./data/feature/train_tfidf.csv")
+        train_data = read_data("./data/feature/train_bow.csv")
 
         x_train, y_train = separate_data(train_data)
 

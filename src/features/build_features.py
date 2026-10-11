@@ -178,8 +178,8 @@ def save_feature_data(train_df, test_df):
         logger.debug("Creating output directory: %s", data_path)
         os.makedirs(data_path, exist_ok=True)
 
-        train_path = os.path.join(data_path, "train_tfidf.csv")
-        test_path = os.path.join(data_path, "test_tfidf.csv")
+        train_path = os.path.join(data_path, "train_bow.csv")
+        test_path = os.path.join(data_path, "test_bow.csv")
 
         train_df.to_csv(train_path, index=False)
         test_df.to_csv(test_path, index=False)

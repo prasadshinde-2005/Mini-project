@@ -5,11 +5,6 @@ import yaml
 import logging
 import sys
 
-# that for dagshub 
-dagshub.init(repo_name = "https://github.com/prasadshinde-2005/Mini-project" , repo_name = "mlops_mini_project" , 
-             mlflow = True)
-
-dagshub.set_tracking_uri("")
 
 from urllib.error import URLError, HTTPError
 from sklearn.model_selection import train_test_split

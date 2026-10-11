@@ -1,0 +1,11 @@
+make_dataset:
+  test_size: 0.4
+
+build_features:
+  max_features: 100
+
+train_model:
+  C : 1
+  penalty : l2
+  solver : "leblinear"
+

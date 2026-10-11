@@ -89,12 +89,12 @@ def load_model(model_path):
 
         # Only load pickle files from trusted sources.
         with open(model_path, "rb") as file:
-            clf = pickle.load(file)
+            LR = pickle.load(file)
 
         logger.info("Model loaded successfully.")
-        logger.debug("Model classes: %s", clf.classes_)
+        logger.debug("Model classes: %s", LR.classes_)
 
-        return clf
+        return LR
 
     except Exception:
         logger.exception("Failed to load model.")
@@ -103,28 +103,28 @@ def load_model(model_path):
 
 # ---------------- Make Predictions ----------------
 
-def predict(clf, x_test):
+def predict(LR, x_test):
     try:
         logger.info("Making predictions.")
 
-        y_pred = clf.predict(x_test)
+        y_pred = LR.predict(x_test)
 
-        logger.debug("Model classes: %s", clf.classes_)
+        logger.debug("Model classes: %s", LR.classes_)
 
         # In data_ingestion.py:
         # happiness = 1
         # sadness = 0
         positive_class = 1
 
-        if positive_class not in clf.classes_:
+        if positive_class not in LR.classes_:
             raise ValueError(
                 "Positive class 1 (happiness) is missing from the trained model."
             )
 
-        y_pred_proba_all = clf.predict_proba(x_test)
+        y_pred_proba_all = LR.predict_proba(x_test)
 
         # Get probability column corresponding to class 1
-        happiness_index = list(clf.classes_).index(positive_class)
+        happiness_index = list(LR.classes_).index(positive_class)
         y_pred_proba = y_pred_proba_all[:, happiness_index]
 
         logger.info("Predictions completed successfully.")

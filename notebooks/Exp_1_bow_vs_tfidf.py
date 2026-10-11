@@ -133,6 +133,7 @@ vectorizers = {"BOW" : CountVectorizer() ,
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier 
 from xgboost import XGBClassifier
 from sklearn.naive_bayes import MultinomialNB
+import mlflow.xgboost
 
 # Define algorithm 
 algorithms = {
@@ -171,7 +172,7 @@ with mlflow.start_run(run_name = "All_Experiment") as parent_run :
                     mlflow.log_param("alpha" , model.alpha)
                 elif algo_name =="RandomForest": 
                     mlflow.log_param("n_estimators" ,model.n_estimators)
-                    mlflow.log_param("learning_rate" , model.learning_rate)  
+                    mlflow.log_param("max_depth" , model.max_depth)  
 
                 elif algo_name =="GradientBossting":
                     mlflow.log_param("n_estimators" ,model.n_estimators)
@@ -195,16 +196,22 @@ with mlflow.start_run(run_name = "All_Experiment") as parent_run :
                     y_test, y_pred, average="weighted", zero_division=0
                 )
 
-
-                # log this evalution  metrics
+               #  Log The params 
                 mlflow.log_metric("accuracy" , accuracy)
                 mlflow.log_metric("precision" , precision)
                 mlflow.log_metric("recall" , recall)
                 mlflow.log_metric("f1" , f1)
-
-                # log model 
-                mlflow.sklearn.log_model(model , artifact_path = "model-1")
                 
+                                              
+                # Log the model using its appropriate MLflow flavor
+                if isinstance(model, XGBClassifier):
+                    mlflow.xgboost.log_model(
+                        xgb_model=model,
+                        name="model-1" 
+                    )
+                else:
+                    mlflow.sklearn.log_model(
+                        sk_model=model , name ="model-1" , skops_trusted_types=["sklearn.tree._tree.Tree"])
                # log notebook
                 mlflow.log_artifact(__file__) 
 

@@ -1,0 +1,45 @@
+stages:
+  make_datset:
+    cmd: python src/data/make_dataset.py
+    deps:
+    - src/data/make_dataset.py
+    params:
+      - make_dataset.test_size
+    outs:
+    - data/raw
+  preprocessing:
+    cmd: python src/preprocessing.py
+    deps:
+    - src/data/make_dataset.py
+    - src/preprocessing.py
+    outs:
+    - data/processed
+  build_features:
+    cmd: python src/features/build_features.py
+    deps:
+    - src/features/build_features.py
+    - src/preprocessing.py
+    params:
+    - build_features.max_features
+    outs:
+    - data/feature
+  train_model:
+    cmd: python src/models/train_model.py
+    deps:
+    - src/features/build_features.py
+    - src/models/train_model.py
+    params:
+    - train_model.C
+    - train_model.penalty
+    - train_model.solver
+    outs:
+    - model.pkl
+  predict_model:
+    cmd: python src/models/predict_model.py
+    deps:
+    - model.pkl
+    - src/models/predict_model.py
+    outs:
+    - metrics.json
+
+

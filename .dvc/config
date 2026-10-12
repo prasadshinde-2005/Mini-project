@@ -1,4 +1,4 @@
 [core]
     remote = myremote
 ['remote "myremote"']
-    url = C:\Users\Hp\AppData\Local\Temp
+    url = s3://sp-bucket-09

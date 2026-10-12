@@ -2,7 +2,7 @@ make_dataset:
   test_size: 0.4
 
 build_features:
-  max_features: 2000
+  max_features: 3000
 
 train_model:
   C : 1

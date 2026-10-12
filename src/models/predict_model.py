@@ -16,12 +16,10 @@ from sklearn.metrics import (
 )
 
 # ---------------- DagsHub / MLflow setup ----------------
-# dagshub.init(mlflow=True) khud MLflow tracking URI set kar deta hai.
-# (Purani line `dagshub.set_tracking_uri = "..."` hata di, wo kuch nahi karti thi.)
+# dagshub.init(mlflow=True) login bhi handle karta hai aur MLflow tracking URI bhi set karta hai.
 dagshub.init(repo_owner="prasadshinde-2005", repo_name="Mini-project", mlflow=True)
 
-# Purane runs usi experiment mein rakhne hain to naam "dvc-pipline" kar do.
-EXPERIMENT_NAME = "dvc-pipeline"
+EXPERIMENT_NAME = "new-dvc-pipeline"
 
 
 # ---------------- Logging Configuration ----------------
@@ -205,27 +203,48 @@ def save_metrics(metrics, output_path):
 # ---------------- Log everything to MLflow ----------------
 
 def log_to_mlflow(model, metrics, metrics_path, model_path):
-    # metrics aur params
+    """Metrics, params, artifacts aur model MLflow mein log karta hai.
+    Model ka URI return karta hai (registry ke liye)."""
+
     mlflow.log_metrics(metrics)
     mlflow.log_params(model.get_params())
 
-    # Artifacts: ye Artifacts tab mein dikhenge
+    # Plain files: ye run ke Artifacts tab mein dikhengi
     mlflow.log_artifact(metrics_path)   # metrics.json
-    mlflow.log_artifact(model_path)     # model.pkl (raw file)
+    mlflow.log_artifact(model_path)     # model.pkl
 
-    # MLflow model format. MLflow 3 mein ye Artifacts tab mein nahi,
-    # "Models / Logged models" tab mein dikhta hai.
-    # Agar DagsHub ka server ise support na kare to run fail na ho,
-    # isliye try/except mein rakha hai.
+    # MLflow-format model. MLflow 3 mein ye Artifacts tab mein nahi,
+    # Logged models / Models tab mein dikhta hai.
+    # try/except jaan-bujhkar nahi lagaya: fail ho toh asli error dikhe
+    # aur galat exp_info.json na bane.
+    model_info = mlflow.sklearn.log_model(model, name="model")
+    logger.info("Model logged to MLflow: %s", model_info.model_uri)
+
+    return model_info.model_uri
+
+
+# ---------------- Save Model Info (for model registry) ----------------
+
+def save_model_info(run_id: str, model_path: str, model_uri: str, file_path: str) -> None:
     try:
-        mlflow.sklearn.log_model(model, name="model")
-        logger.info("Model logged to MLflow in MLflow-model format.")
+        output_dir = os.path.dirname(file_path)
+        if output_dir:
+            os.makedirs(output_dir, exist_ok=True)   # reports/ folder na ho toh bana do
+
+        model_info = {
+            "run_id": run_id,
+            "model_path": model_path,
+            "model_uri": model_uri,
+        }
+
+        with open(file_path, "w", encoding="utf-8") as file:
+            json.dump(model_info, file, indent=4)
+
+        logger.info("Model info saved to %s", file_path)
+
     except Exception:
-        logger.warning(
-            "mlflow.sklearn.log_model failed; raw model.pkl is still "
-            "available as a run artifact.",
-            exc_info=True,
-        )
+        logger.exception("Failed to save model info.")
+        raise
 
 
 # ---------------- Main Function ----------------
@@ -235,12 +254,13 @@ def main():
     test_data_path = "data/feature/test_bow.csv"
     model_path = "model.pkl"
     metrics_path = "metrics.json"
+    model_info_path = "reports/exp_info.json"
 
     mlflow.set_experiment(EXPERIMENT_NAME)
 
     try:
         # `with` use kiya taaki error aane par bhi run sahi se band ho
-        with mlflow.start_run():
+        with mlflow.start_run() as run:
             logger.info("Starting model evaluation.")
 
             # Load data and trained model
@@ -256,7 +276,10 @@ def main():
             save_metrics(metrics, metrics_path)
 
             # Log everything to MLflow / DagsHub
-            log_to_mlflow(model, metrics, metrics_path, model_path)
+            model_uri = log_to_mlflow(model, metrics, metrics_path, model_path)
+
+            # Sirf tab save hoga jab upar sab kuch successfully ho gaya
+            save_model_info(run.info.run_id, "model", model_uri, model_info_path)
 
             logger.info("Model evaluation completed successfully.")
 

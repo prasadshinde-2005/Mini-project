@@ -4,7 +4,7 @@ stages:
     deps:
     - src/data/make_dataset.py
     params:
-      - make_dataset.test_size
+    - make_dataset.test_size
     outs:
     - data/raw
   preprocessing:
@@ -41,5 +41,8 @@ stages:
     - src/models/predict_model.py
     outs:
     - metrics.json
-
-
+  model_registry:
+    cmd: python src/models/model_registry.py
+    deps:
+    - reports/exp_info.json
+    - src/models/model_registry.py

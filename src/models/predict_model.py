@@ -19,7 +19,7 @@ from sklearn.metrics import (
 # dagshub.init(mlflow=True) login bhi handle karta hai aur MLflow tracking URI bhi set karta hai.
 dagshub.init(repo_owner="prasadshinde-2005", repo_name="Mini-project", mlflow=True)
 
-EXPERIMENT_NAME = "new-dvc-pipeline"
+EXPERIMENT_NAME = "latest-dvc-pipeline"
 
 
 # ---------------- Logging Configuration ----------------

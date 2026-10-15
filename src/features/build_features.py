@@ -1,4 +1,4 @@
-
+import pickle 
 import pandas as pd
 import numpy as np
 import os
@@ -134,7 +134,9 @@ def apply_bow(x_train, x_test, max_features):
         logger.debug("Test tfidf shape: %s", x_test_bow.shape)
         logger.debug("Vocabulary size: %s", len(vectorizer.vocabulary_))
 
+        pickle.dump(vectorizer , open("model/vectorizer.pkl" ,'wb'))
         return x_train_bow , x_test_bow
+    
 
     except ValueError:
         logger.exception(
@@ -146,6 +148,7 @@ def apply_bow(x_train, x_test, max_features):
     except Exception:
         logger.exception("Unexpected error while applying BoW.")
         raise
+
 
 
 # Create feature DataFrames

@@ -91,3 +91,4 @@ target/
 myenv
 /model.pkl
 /metrics.json
+testenv/

@@ -32,3 +32,7 @@ jobs:
       - name: Run model loading test
         run: |
           python -m unittest tests/test_model.py
+      
+      - name: promot model to production 
+        if: success()
+        run: python scripts/promot_model.py

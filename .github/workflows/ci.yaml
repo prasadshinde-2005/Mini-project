@@ -21,6 +21,8 @@ jobs:
           pip install -r requirements.txt
 
       - name: run pipeline  
+        env:
+          DAGSHUB_USER_TOKEN: ${{d585e4d150193e7b9e75da871ef4435e5ddb06fa}}
         run: |
           dvc repro
 

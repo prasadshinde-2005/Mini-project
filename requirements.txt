@@ -30,7 +30,6 @@ click-didyoumean==0.3.1
 click-plugins==1.1.1.2
 click-repl==0.4.1
 cloudpickle==3.1.2
-colorama==0.4.6
 comm==0.2.3
 configobj==5.0.9
 contourpy==1.4.0
@@ -150,7 +149,6 @@ pygtrie==2.6.2
 pyparsing==3.3.3
 python-dateutil==2.9.0.post0
 python-dotenv==1.2.4
-pywin32==312
 PyYAML==6.0.3
 pyzmq==27.2.0
 regex==2026.9.29

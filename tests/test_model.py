@@ -4,6 +4,7 @@ import pandas as pd
 import mlflow
 from mlflow.exceptions import MlflowException
 import pickle 
+from sklearn.metrics import accuracy_score , precision_score , recall_score , roc_auc_score
 
 class TestModelLoading(unittest.TestCase):
 
@@ -64,5 +65,27 @@ class TestModelLoading(unittest.TestCase):
         # binary output
         self.assertTrue(set(prediction.tolist()) <= {0, 1})
 
+    def test_model_performance(self):
+        x_holdout = self.holdout_data.iloc[:, 0:-1]
+        y_holdout = self.holdout_data.iloc[:, -1]
+
+        y_pred_new = self.new_model.predict(x_holdout)
+
+        accuracy = accuracy_score(y_holdout, y_pred_new)
+        precision = precision_score(y_holdout, y_pred_new, pos_label=1, zero_division=0)
+        recall = recall_score(y_holdout, y_pred_new, pos_label=1, zero_division=0)
+        auc = roc_auc_score(y_holdout, y_pred_new)
+
+        # Define expected accuracy 
+        excepted_accuracy = 0.70
+        excepted_precison = 0.70
+        excepted_recall = 0.70 
+        excepted_auc = 0.70
+
+         # Assert thats model meets the performance threshould 
+        self.assertGreaterEqual(accuracy_score , excepted_accuracy , f'Accuracy should be least{excepted_accuracy}')
+        self.assertGreaterEqual(precision_score , excepted_precison , f'Accuracy should be least{excepted_precison}')
+        self.assertGreaterEqual(recall_score , excepted_recall , f'Accuracy should be least{excepted_recall}')
+        self.assertGreaterEqual(roc_auc_score , excepted_auc , f'Accuracy should be least{excepted_auc}')
 if __name__ == "__main__":
     unittest.main()

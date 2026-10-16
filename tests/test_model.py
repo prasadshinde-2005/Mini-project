@@ -21,29 +21,32 @@ class TestModelLoading(unittest.TestCase):
             "https://dagshub.com/prasadshinde-2005/Mini-project.mlflow"
         )
 
-        cls.model_name = "spmodel"
-        cls.model_version = cls.get_latest_model_version(cls.model_name)
-        if cls.model_version is None:
+        cls.new_model_name = "spmodel"
+        cls.new_model_version = cls.get_latest_model_version(cls.new_model_name)
+        if cls.new_model_version is None:
             raise RuntimeError("No model with alias 'candidate' found")
 
-        cls.model_uri = f"models:/{cls.model_name}/{cls.model_version}"
-        cls.model = mlflow.pyfunc.load_model(cls.model_uri)
+        cls.new_model_uri = f"models:/{cls.new_model_name}/{cls.new_model_version}"
+        cls.new_model = mlflow.pyfunc.load_model(cls.new_model_uri)
 
          # import model
         with open("model/vectorizer.pkl", "rb") as f:
             cls.vectorizer = pickle.load(f)
-    
+
+         # load holdout test data   
+        cls.holdout_data =pd.read_csv("data/feature_building_data/test_bow.csv")
+
     @staticmethod
-    def get_latest_model_version(model_name):
+    def get_latest_model_version(new_model_name):
         client = mlflow.MlflowClient()
         try:
-            mv = client.get_model_version_by_alias(model_name, "candidate")
+            mv = client.get_model_version_by_alias(new_model_name, "candidate")
             return mv.version
         except MlflowException:
             return None
 
     def test_model_load_property(self):
-        self.assertIsNotNone(self.model)
+        self.assertIsNotNone(self.new_model)
 
     def test_model_signature(self):
         input_text = "hi how are you"
@@ -87,5 +90,6 @@ class TestModelLoading(unittest.TestCase):
         self.assertGreaterEqual(precision_score , excepted_precison , f'Accuracy should be least{excepted_precison}')
         self.assertGreaterEqual(recall_score , excepted_recall , f'Accuracy should be least{excepted_recall}')
         self.assertGreaterEqual(roc_auc_score , excepted_auc , f'Accuracy should be least{excepted_auc}')
+
 if __name__ == "__main__":
     unittest.main()

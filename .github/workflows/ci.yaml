@@ -1,11 +1,8 @@
 
 name: CI Pipeline
  
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+runs-on: push
+
  
 jobs:
   project-testing:

@@ -45,20 +45,24 @@ class TestModelLoading(unittest.TestCase):
         self.assertIsNotNone(self.model)
 
     def test_model_signature(self):
-        # dommy input 
         input_text = "hi how are you"
         input_data = self.vectorizer.transform([input_text])
-        input_df = pd.DataFrame(input_data.toarray() , columns =[str(i) for i in range(input_data.shape[1])]) 
+        input_df = pd.DataFrame(
+            input_data.toarray(),
+            columns=[str(i) for i in range(input_data.shape[1])],
+        )
 
-        # predict using model to verify input and output 
         prediction = self.model.predict(input_df)
 
-        # verify the input shape 
-        self.assertEqual(input_df.shape[1] , len(self.vectorizer.get_feature_names_out()))
+        # input matches the vectorizer's feature count
+        self.assertEqual(input_df.shape[1], len(self.vectorizer.get_feature_names_out()))
 
-        # verify the binary shape 
-        self.assertEqual(len(prediction) , input_df[0])
-        self.assertEqual(len(prediction.shape) , 1)  
+        # one prediction per input row, 1-D output
+        self.assertEqual(len(prediction), input_df.shape[0])
+        self.assertEqual(len(prediction.shape), 1)
+
+        # binary output
+        self.assertTrue(set(prediction.tolist()) <= {0, 1})
 
 if __name__ == "__main__":
     unittest.main()

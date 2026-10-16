@@ -1,8 +1,6 @@
-
 name: CI Pipeline
  
-runs-on: push
-
+on: push
  
 jobs:
   project-testing:

@@ -13,26 +13,16 @@ from sklearn.metrics import (
     recall_score,
     roc_auc_score,
 )
-dagshub_token = os.getenv("DAGSHUB_TOKEN")
-if not dagshub_token:
-    raise EnvironmentError("DAGSHUB_TOKEN NOT SET")
 
-
-os.environ["MLFLOW_TRACKING_USERNAME"] = dagshub_token
-os.environ["MLFLOW_TRACKING_PASSWORD"] = dagshub_token
-
-dagshub_url = "https://dagshub.com"
-repo_owner="prasadshinde-2005"
-repo_name="Mini-project"
-
-mlflow.set_tracking_uri(f'{dagshub_url}/{repo_owner}/{repo_name}.mlflow')
+dagshub.set_tracking_uri = "https://dagshub.com/prasadshinde-2005/Mini-project.mlflow"
+dagshub.init(repo_owner='prasadshinde-2005', repo_name='Mini-project', mlflow=True)
 
 
 # ---------------- DagsHub / MLflow setup ----------------
 # dagshub.init(mlflow=True) login bhi handle karta hai aur MLflow tracking URI bhi set karta hai.
 dagshub.init(repo_owner="prasadshinde-2005", repo_name="Mini-project", mlflow=True)
 
-EXPERIMENT_NAME = "latest-dvc-pipeline"
+EXPERIMENT_NAME = "new_sp-dvc-pipeline"
 
 
 # ---------------- Logging Configuration ----------------

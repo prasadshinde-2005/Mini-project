@@ -14,9 +14,11 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 
-dagshub.set_tracking_uri = "https://dagshub.com/prasadshinde-2005/Mini-project.mlflow"
-dagshub.init(repo_owner='prasadshinde-2005', repo_name='Mini-project', mlflow=True)
 
+token = os.getenv("DAGSHUB_TOKEN")
+os.environ["MLFLOW_TRACKING_USERNAME"] = "prasadshinde-2005"
+os.environ["MLFLOW_TRACKING_PASSWORD"] = token
+mlflow.set_tracking_uri("https://dagshub.com/prasadshinde-2005/Mini-project.mlflow")
 
 # ---------------- DagsHub / MLflow setup ----------------
 # dagshub.init(mlflow=True) login bhi handle karta hai aur MLflow tracking URI bhi set karta hai.

@@ -3,7 +3,6 @@ import sys
 import json
 import pickle
 import logging
-
 import mlflow
 import mlflow.sklearn
 import pandas as pd
@@ -14,6 +13,20 @@ from sklearn.metrics import (
     recall_score,
     roc_auc_score,
 )
+dagshub_token = os.getenv("DAGSHUB_TOKEN")
+if not dagshub_token:
+    raise EnvironmentError("DAGSHUB_TOKEN NOT SET")
+
+
+os.environ["MLFLOW_TRACKING_USERNAME"] = dagshub_token
+os.environ["MLFLOW_TRACKING_PASSWORD"] = dagshub_token
+
+dagshub_url = "https://dagshub.com"
+repo_owner="prasadshinde-2005"
+repo_name="Mini-project"
+
+mlflow.set_tracking_uri(f'{dagshub_url}/{repo_owner}/{repo_name}.mlflow')
+
 
 # ---------------- DagsHub / MLflow setup ----------------
 # dagshub.init(mlflow=True) login bhi handle karta hai aur MLflow tracking URI bhi set karta hai.

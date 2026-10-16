@@ -27,7 +27,11 @@ class TestModelLoading(unittest.TestCase):
 
         cls.model_uri = f"models:/{cls.model_name}/{cls.model_version}"
         cls.model = mlflow.pyfunc.load_model(cls.model_uri)
-        cls.vectorizer = pickle.load('model/vectorizer.pkl' , 'rb')
+
+         # import model
+        with open("model/vectorizer.pkl", "rb") as f:
+            cls.vectorizer = pickle.load(f)
+    
     @staticmethod
     def get_latest_model_version(model_name):
         client = mlflow.MlflowClient()

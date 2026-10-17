@@ -39,4 +39,4 @@ jobs:
 
       - name: run flask app tests
         if: success()
-        run: pyhton -m unittest tests/test_flask.py    
+        run: python -m unittest tests/test_flask.py    

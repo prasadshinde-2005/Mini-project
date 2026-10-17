@@ -36,3 +36,7 @@ jobs:
       - name: promot model to production 
         if: success()
         run: python scripts/promot_model.py
+
+      - name: run flask app tests
+        if: success()
+        run: pyhton -m unittest tests/test_flask.py    

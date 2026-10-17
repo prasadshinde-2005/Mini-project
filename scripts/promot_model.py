@@ -1,40 +1,49 @@
-import os 
-import mlflow 
+import os
+import mlflow
+from mlflow.exceptions import MlflowException
+
+MODEL_NAME = "spmodel"
+NEW_ALIAS = "challenger"   # naya version jis alias pe hai (agar tumhara alias "candidate" hai to yahan badlo)
 
 
 def promote_model():
-    dagshub_token = os.getenv("DAGSHUB_TOKEN")
-    if not dagshub_token:
+    token = os.getenv("DAGSHUB_TOKEN")
+    if not token:
         raise EnvironmentError("DAGSHUB_TOKEN environment variable is not set")
 
     os.environ["MLFLOW_TRACKING_USERNAME"] = "prasadshinde-2005"
-    os.environ["MLFLOW_TRACKING_PASSWORD"] = dagshub_token
-
-    mlflow.set_tracking_uri(
-                "https://dagshub.com/prasadshinde-2005/Mini-project.mlflow"
-            )
+    os.environ["MLFLOW_TRACKING_PASSWORD"] = token
+    mlflow.set_tracking_uri("https://dagshub.com/prasadshinde-2005/Mini-project.mlflow")
 
     client = mlflow.MlflowClient()
-    model_name = "spmodel"
-    latest_version_aliased = client.get_latest_versions(model_name , alias =["challenger"])[0].version 
 
-    prod_version = client.get_latest_versions(model_name , alias = ["champion"])
-    for version in prod_version:
-        client.transition_model_version_stage(
-            name = model_name , 
-            version = version.version ,
-            alias = "candidate"
+    # 1. naya version nikalo
+    try:
+        new_version = client.get_model_version_by_alias(MODEL_NAME, NEW_ALIAS).version
+    except MlflowException as e:
+        raise RuntimeError(f"No model version has alias '{NEW_ALIAS}': {e}")
 
-        )
+    # 2. purana champion nikalo (pehli baar run pe nahi hoga)
+    try:
+        old_champion = client.get_model_version_by_alias(MODEL_NAME, "champion").version
+    except MlflowException:
+        old_champion = None
 
-        client.transition_model_version_stage(
-                    name = model_name , 
-                    version = latest_version_aliased ,
-                    alias = "champion"
-        
-                )
+    if old_champion == new_version:
+        print(f"Version {new_version} is already 'champion'. Nothing to do.")
+        return
 
-        print(f'model version{latest_version_aliased}promoted to production')
+    # 3. naya version -> champion
+    client.set_registered_model_alias(MODEL_NAME, "champion", new_version)
+    print(f"Version {new_version} is now 'champion'")
 
-if __name__ =='__main__':
+    # 4. purana champion -> candidate
+    if old_champion is not None:
+        client.set_registered_model_alias(MODEL_NAME, "candidate", old_champion)
+        print(f"Old champion (version {old_champion}) is now 'candidate'")
+    else:
+        print("No previous champion found, so no 'candidate' alias was set.")
+
+
+if __name__ == "__main__":
     promote_model()

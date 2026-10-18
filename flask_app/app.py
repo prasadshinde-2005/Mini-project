@@ -1,71 +1,102 @@
-from flask import Flask ,render_template , request 
-import mlflow 
-import pickle 
-import dagshub
-import os 
-import pandas as pd  
+
+from flask import Flask, render_template, request
+import mlflow
+import pickle
+import os
+import pandas as pd
+
 from preprocessing_utility import normalization_sentence
 
-# import flask
+# Initialize Flask app
 app = Flask(__name__)
 
-# for dagshub authentication in ci
+# DagsHub authentication
 token = os.getenv("DAGSHUB_TOKEN")
+
 if not token:
-    raise EnvironmentError("DAGSHUB_TOKEN environment variable is not set")
+    raise EnvironmentError(
+        "DAGSHUB_TOKEN environment variable is not set"
+    )
 
 os.environ["MLFLOW_TRACKING_USERNAME"] = "prasadshinde-2005"
 os.environ["MLFLOW_TRACKING_PASSWORD"] = token
-mlflow.set_tracking_uri("https://dagshub.com/prasadshinde-2005/Mini-project.mlflow")
+
+# Set MLflow tracking URI
+mlflow.set_tracking_uri(
+    "https://dagshub.com/prasadshinde-2005/Mini-project.mlflow"
+)
+
+# Initialize MLflow client
+client = mlflow.MlflowClient()
 
 
-# model load from model registry
+# Get latest model version
 def get_latest_version(model_name):
-    client = mlflow.MlflowClient()
-    latest_version = client.get_model_version_by_alias(model_name , "champion" )
-    if not latest_version:
-        latest_version = client.client.get_model_version_by_alias(model_name , "candidate")
-    return latest_version[0].version if latest_version else None     
+    latest_versions = client.get_latest_versions(model_name)
 
-# model name and versiion 
+    if not latest_versions:
+        raise ValueError(
+            f"No model versions found for '{model_name}'"
+        )
+
+    # Return the version number
+    return latest_versions[0].version
+
+
+# Model name and version
 model_name = "spmodel"
 model_version = get_latest_version(model_name)
 
-model_uri = f'models:/{model_name}/{model_version}'
+# Load registered model
+model_uri = f"models:/{model_name}/{model_version}"
 model = mlflow.pyfunc.load_model(model_uri)
 
+# Load trained vectorizer
+with open("model/vectorizer.pkl", "rb") as f:
+    vectorizer = pickle.load(f)
 
-vectorizer = pickle.load(open("model/vectorizer.pkl" ,'rb'))
 
-# route 1 
+# Route 1: Home page
 @app.route("/")
 def home():
-    return render_template("index.html" , result = None)
+    return render_template("index.html", result=None)
 
 
-
-# route 2
-@app.route('/predict' , methods = ["POST"])
+# Route 2: Prediction
+@app.route("/predict", methods=["POST"])
 def predict():
 
-    text = request.form["text"]
+    text = request.form.get("text", "").strip()
 
+    if not text:
+        return render_template(
+            "index.html",
+            result="Please enter some text."
+        )
 
-    # clean 
-    text = normalization_sentence(text) 
+    # Preprocess input text
+    text = normalization_sentence(text)
 
-    # apply bow on prediction data
+    # Transform text using the trained vectorizer
     features = vectorizer.transform([text])
-    
-    #convert sparse matrix to dataframe
-    feature_df = pd.DataFrame.sparse.from_spmatric(features)
-    feature_df = pd.DataFrame(features.toarray() , columns = [str(i) for i in range(features.shape[1])])
-    # prdiction 
+
+    # Convert sparse matrix to DataFrame
+    feature_df = pd.DataFrame(
+        features.toarray(),
+        columns=[str(i) for i in range(features.shape[1])]
+    )
+
+    # Make prediction
     result = model.predict(feature_df)
 
-    
-    return render_template("index.html" , result = result[0])
-print(app.url_map)
-# Start the Flask app only once, at the bottom
+    # Display prediction
+    return render_template(
+        "index.html",
+        result=result[0]
+    )
+
+
+# Run Flask application
 if __name__ == "__main__":
+    print(app.url_map)
     app.run(debug=True)

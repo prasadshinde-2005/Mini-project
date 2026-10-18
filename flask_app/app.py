@@ -5,7 +5,7 @@ import pickle
 import os
 import pandas as pd
 
-from preprocessing_utility import normalization_sentence
+from flask_app.preprocessing_utility import normalization_sentence
 
 # Initialize Flask app
 app = Flask(__name__)

@@ -5,11 +5,15 @@ import dagshub
 import mlflow
 from mlflow.tracking import MlflowClient
 
-# dagshub.init() login/authentication bhi handle karta hai (403 error se bachata hai)
-dagshub.set_tracking_uri = "https://dagshub.com/prasadshinde-2005/Mini-project.mlflow"
+# dagshub login/authentication bhi handle karta hai (403 error se bachata hai)
 
-dagshub.init(repo_owner='prasadshinde-2005', repo_name='Mini-project', mlflow=True)
+token = os.getenv("DAGSHUB_TOKEN")
+if not token:
+    raise EnvironmentError("DAGSHUB_TOKEN environment variable is not set")
 
+os.environ["MLFLOW_TRACKING_USERNAME"] = token
+os.environ["MLFLOW_TRACKING_PASSWORD"] = token
+mlflow.set_tracking_uri("https://dagshub.com/prasadshinde-2005/Mini-project.mlflow")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 

@@ -1,0 +1,12 @@
+Flask
+mlflow
+dagshub
+scikit-learn
+nltk
+numpy
+pandas
+PyYAML
+python-dotenv
+dvc[s3]
+flake8
+gunicorn 

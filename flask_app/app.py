@@ -5,7 +5,10 @@ import pickle
 import os
 import pandas as pd
 
-from flask_app.preprocessing_utility import normalization_sentence
+try:
+    from .preprocessing_utility import normalization_sentence
+except ImportError:
+    from preprocessing_utility import normalization_sentence
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -99,4 +102,4 @@ def predict():
 # Run Flask application
 if __name__ == "__main__":
     print(app.url_map)
-    app.run(debug=True)
+    app.run(debug=True , host ="0.0.0.0")

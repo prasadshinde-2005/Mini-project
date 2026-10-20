@@ -2,6 +2,7 @@ import json
 import logging
 import os 
 import dagshub
+import pandas as pd 
 import mlflow
 from mlflow.tracking import MlflowClient
 

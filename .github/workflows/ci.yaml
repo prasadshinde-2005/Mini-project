@@ -51,18 +51,18 @@ jobs:
      
 
       # build the docker image 
-      - name:
+      - name: Build docker image
         if: success()
         run: |
           docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/emotion2:latest .
 
        # push into docker hub 
-      - name:  
+      - name: Push docker image to docker hub
         if: success()
         run: |
           docker push  ${{ secrets.DOCKER_HUB_USERNAME }}/emotion2:latest
 
-      - name: Pull Docker Image on EC2
+      - name: Pull Docker Image docker hub into EC2
         if: success()
         uses: appleboy/ssh-action@v1.2.0
         with:

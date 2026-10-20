@@ -1,68 +1,66 @@
 name: CI Pipeline
- 
+
 on: push
- 
+
 jobs:
   project-testing:
     runs-on: ubuntu-latest
- 
+
     env:
       DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
-      
-      
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
- 
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-          cache:  'pip'
- 
+          cache: 'pip'
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
- 
+
       - name: Run DVC pipeline
         run: |
           dvc repro
- 
+
       - name: Run model loading test
         run: |
           python -m unittest tests/test_model.py
-      
-      - name: promot model to production 
+
+      - name: Promote model to production
         if: success()
         run: python scripts/promot_model.py
 
-      - name: run flask app tests
+      - name: Run flask app tests
         if: success()
-        run: python -m unittest tests/test_flask.py 
- 
-      # login to dockerhub 
+        run: python -m unittest tests/test_flask.py
+
+      # login to dockerhub
       - name: Log in to Docker Hub
         if: success()
         uses: docker/login-action@v2
         with:
-          username: ${{secrets.DOCKER_HUB_USERNAME }}
-          password: ${{secrets.DOCKER_HUB_ACCESS_TOKEN }}
-     
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
-      # build the docker image 
+      # build the docker image
       - name: Build docker image
         if: success()
         run: |
           docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/emotion2:latest .
 
-       # push into docker hub 
+      # push into docker hub
       - name: Push docker image to docker hub
         if: success()
         run: |
-          docker push  ${{ secrets.DOCKER_HUB_USERNAME }}/emotion2:latest
+          docker push ${{ secrets.DOCKER_HUB_USERNAME }}/emotion2:latest
 
-      - name: Pull Docker Image docker hub into EC2
+      - name: Pull Docker image from Docker Hub and run on EC2
         if: success()
         uses: appleboy/ssh-action@v1.2.0
         with:
@@ -70,15 +68,15 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/emotion2:latest  
+            docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/emotion2:latest
             docker stop my-app || true
             docker rm my-app || true
-            docker run -p 80:5000 --name my-app\
-               -e DAGSHUB_TOKEN=${{ secrets.DAGSHUB_TOKEN }}\
-               ${{ secrets.DOCKER_HUB_USERNAME }}/emotion2:latest
-            
-              
 
+            # -d (detached) zaroori hai: bina iske container foreground mein chalta rehta hai,
+            # ssh command kabhi khatam nahi hoti aur step "Run Command Timeout" se fail hota hai.
+            docker run -d --restart unless-stopped -p 80:5000 --name my-app -e DAGSHUB_TOKEN=${{ secrets.DAGSHUB_TOKEN }} ${{ secrets.DOCKER_HUB_USERNAME }}/emotion2:latest
 
-
-  
+            # check karo ki container sach mein chal raha hai
+            sleep 15
+            docker ps --filter name=my-app
+            docker logs --tail 30 my-app
